@@ -2,7 +2,7 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 
 const app = express();
 app.use(cors());
@@ -66,14 +66,14 @@ app.post("/api/generic", async (req, res) => {
     const $ = cheerio.load(html);
     const vid =
       $("video source").attr("src") ||
-      $("meta[property='og:video']").attr("content");
+      $('meta[property="og:video"]').attr("content");
     return res.json({ url: vid });
   } catch {
     return res.status(400).json({ error: "Unsupported URL" });
   }
 });
 
-/* ---------- Download proxy ---------- */
+/* ---------- Force-download proxy ---------- */
 import { pipeline } from "stream";
 import { promisify } from "util";
 const pipe = promisify(pipeline);
