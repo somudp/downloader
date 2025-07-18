@@ -3,6 +3,9 @@ import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
+import { pipeline } from "stream";
+import { promisify } from "util";
+const pipe = promisify(pipeline);
 
 const app = express();
 app.use(cors());
@@ -37,7 +40,7 @@ app.post("/api/instagram", async (req, res) => {
   }
 });
 
-/* ---------- Twitter (X) ---------- */
+/* ---------- Twitter / X ---------- */
 app.post("/api/twitter", async (req, res) => {
   try {
     const { url } = req.body;
@@ -73,11 +76,7 @@ app.post("/api/generic", async (req, res) => {
   }
 });
 
-/* ---------- Force-download proxy ---------- */
-import { pipeline } from "stream";
-import { promisify } from "util";
-const pipe = promisify(pipeline);
-
+/* ---------- Download proxy ---------- */
 app.get("/dl", async (req, res) => {
   const { url, filename = "video.mp4" } = req.query;
   try {
@@ -92,5 +91,8 @@ app.get("/dl", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`> http://localhost:${PORT}`));
+/* ---------- Bind to the correct host & port ---------- */
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server listening on 0.0.0.0:${PORT}`);
+});
