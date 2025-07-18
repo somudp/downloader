@@ -3,13 +3,24 @@ import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
-import { pipeline } from "stream";
-import { promisify } from "util";
-const pipe = promisify(pipeline);
+import path from "path";
+import { fileURLToPath } from "url";
+
+// ESM helper for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+/* ---------- Serve static front-end ---------- */
+app.use(express.static(path.join(__dirname, "public")));
+
+/* ---------- Health-check root route ---------- */
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 /* ---------- Instagram ---------- */
 app.post("/api/instagram", async (req, res) => {
@@ -76,7 +87,11 @@ app.post("/api/generic", async (req, res) => {
   }
 });
 
-/* ---------- Download proxy ---------- */
+/* ---------- Force-download proxy ---------- */
+import { pipeline } from "stream";
+import { promisify } from "util";
+const pipe = promisify(pipeline);
+
 app.get("/dl", async (req, res) => {
   const { url, filename = "video.mp4" } = req.query;
   try {
@@ -91,7 +106,7 @@ app.get("/dl", async (req, res) => {
   }
 });
 
-/* ---------- Bind to the correct host & port ---------- */
+/* ---------- Bind to 0.0.0.0 on Render-supplied port ---------- */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on 0.0.0.0:${PORT}`);
