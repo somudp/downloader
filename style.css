@@ -1,0 +1,10 @@
+body{font-family:system-ui,sans-serif;margin:0;background:#fafafa}
+header{background:#111;color:#fff;padding:1rem 2rem}
+nav button{margin-right:.5rem;padding:.4rem .8rem;border:none;background:#444;color:#fff;cursor:pointer}
+nav button:hover{background:#666}
+.tab{padding:2rem;max-width:600px;margin:auto}
+.hidden{display:none}
+input{width:100%;max-width:400px;padding:.5rem;margin-right:.5rem}
+.dl-btn{display:inline-block;margin:.3rem;padding:.4rem .8rem;background:#0077ff;color:#fff;text-decoration:none;border-radius:3px}
+.dl-btn:hover{background:#005ed1}
+ul{list-style:none;padding:0}

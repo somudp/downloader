@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Universal Downloader</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <header>
+    <h1>Universal Video Downloader</h1>
+    <nav>
+      <button data-tab="ig">Instagram</button>
+      <button data-tab="tw">Twitter / X</button>
+      <button data-tab="any">Any Link</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="ig" class="tab">
+      <h2>Instagram Video / Reel / IGTV</h2>
+      <input type="url" placeholder="Paste Instagram link…" />
+      <button class="fetch">Grab Links</button>
+      <ul class="links"></ul>
+    </section>
+
+    <section id="tw" class="tab hidden">
+      <h2>Twitter (X) Video</h2>
+      <input type="url" placeholder="Paste Tweet link…" />
+      <button class="fetch">Grab Links</button>
+      <ul class="links"></ul>
+    </section>
+
+    <section id="any" class="tab hidden">
+      <h2>Any Public Video</h2>
+      <input type="url" placeholder="Paste any public video URL…" />
+      <button class="fetch">Grab Links</button>
+      <ul class="links"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
