@@ -1,8 +1,8 @@
-// server.js  –  ESM, single-file, 2024-06 verified
+// server.js – all-in-one, ESM, 2024-06 verified
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import * as cheerio from "cheerio";
+import YTDlpWrap from "yt-dlp-wrap";
 import { pipeline } from "stream";
 import { promisify } from "util";
 const pipe = promisify(pipeline);
@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ---------- Health / landing page ---------- */
+/* ---------- front-end ---------- */
 const html = `
 <!doctype html>
 <html lang="en">
@@ -101,59 +101,41 @@ const html = `
 </body>
 </html>
 `;
-
-/* ---------- Health / root ---------- */
 app.get("/", (_req, res) => res.send(html));
 
-/* ---------- Instagram (public only) ---------- */
+/* ---------- Instagram ---------- */
 app.post("/api/instagram", async (req, res) => {
   try {
     const { url } = req.body;
-    const shortcode =
-      url.split("/p/")[1]?.split("/")[0] ||
-      url.split("/reel/")[1]?.split("/")[0] ||
-      url.split("/tv/")[1]?.split("/")[0];
-    if (!shortcode) return res.status(400).json({ error: "Bad IG URL" });
-
-    const api = `https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b444e64a6&variables={"shortcode":"${shortcode}"}`;
-    const headers = {
-      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36",
-      "X-IG-App-ID": "936619743392459", // official web app id
-    };
-    const json = await fetch(api, { headers }).then((r) => r.json());
-    const media = json.data?.shortcode_media;
-    if (!media || !media.is_video)
-      return res.status(400).json({ error: "Video not found or private" });
-
-    const videos = [];
-    if (media.video_url)
-      videos.push({ quality: "HD", url: media.video_url });
-    return res.json({ url_list: videos });
-  } catch (e) {
-    console.error("IG error", e);
-    return res.status(400).json({ error: "Instagram fetch failed" });
+    const ytDlp = new YTDlpWrap();
+    const info = await ytDlp.getVideoInfo([url, "--no-playlist"]);
+    const videos = info.formats
+      .filter(f => f.ext === "mp4" && f.url)
+      .map(f => ({
+        quality: f.height ? `${f.height}p` : "unknown",
+        url: f.url
+      }));
+    res.json({ url_list: videos });
+  } catch {
+    res.status(400).json({ error: "Instagram video unavailable or private" });
   }
 });
 
-/* ---------- Twitter / X ---------- */
+/* ---------- Twitter ---------- */
 app.post("/api/twitter", async (req, res) => {
   try {
     const { url } = req.body;
-    const id = url.match(/status\/(\d+)/)?.[1];
-    if (!id) return res.status(400).json({ error: "Bad Tweet URL" });
-
-    const api = `https://cdn.syndication.twimg.com/tweet-result?id=${id}`;
-    const json = await fetch(api).then((r) => r.json());
-    const media = json.mediaDetails?.find((m) => m.type === "video");
-    if (!media) return res.status(400).json({ error: "No video in tweet" });
-
-    const videos = media.video_info.variants
-      .filter((v) => v.content_type === "video/mp4")
-      .map((v) => ({ quality: `${v.bitrate / 1000}k`, url: v.url }));
-    return res.json({ videos });
-  } catch (e) {
-    console.error("TW error", e);
-    return res.status(400).json({ error: "Twitter fetch failed" });
+    const ytDlp = new YTDlpWrap();
+    const info = await ytDlp.getVideoInfo([url, "--no-playlist"]);
+    const videos = info.formats
+      .filter(f => f.ext === "mp4" && f.url)
+      .map(f => ({
+        quality: f.height ? `${f.height}p` : "unknown",
+        url: f.url
+      }));
+    res.json({ videos });
+  } catch {
+    res.status(400).json({ error: "Twitter video unavailable or private" });
   }
 });
 
@@ -161,18 +143,21 @@ app.post("/api/twitter", async (req, res) => {
 app.post("/api/generic", async (req, res) => {
   try {
     const { url } = req.body;
-    const html = await fetch(url).then((r) => r.text());
-    const $ = cheerio.load(html);
-    const vid =
-      $("video source").attr("src") ||
-      $('meta[property="og:video"]').attr("content");
-    return res.json({ url: vid });
+    const ytDlp = new YTDlpWrap();
+    const info = await ytDlp.getVideoInfo([url, "--no-playlist"]);
+    const videos = info.formats
+      .filter(f => f.ext === "mp4" && f.url)
+      .map(f => ({
+        quality: f.height ? `${f.height}p` : "unknown",
+        url: f.url
+      }));
+    res.json({ url_list: videos });
   } catch {
-    return res.status(400).json({ error: "Unsupported URL" });
+    res.status(400).json({ error: "Unsupported or private URL" });
   }
 });
 
-/* ---------- Force-download proxy ---------- */
+/* ---------- Download proxy ---------- */
 app.get("/dl", async (req, res) => {
   const { url, filename = "video.mp4" } = req.query;
   try {
@@ -181,7 +166,7 @@ app.get("/dl", async (req, res) => {
       "Content-Type": "video/mp4",
       "Content-Disposition": `attachment; filename="${filename}"`,
     });
-    await pipe(response.body, res);
+    await promisify(pipeline)(response.body, res);
   } catch {
     res.status(500).send("Download failed");
   }
